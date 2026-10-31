@@ -32,7 +32,7 @@
 /skill-blueprint @project
 ```
 
-結果はプロジェクト直下の `blueprints/<フォルダ名>/` に出力されます。
+結果はプロジェクト直下の `blueprints/<フォルダ名>/` に出力されます(`@project` のときのフォルダ名は `project-skills`)。
 
 ```
 blueprints/<フォルダ名>/
