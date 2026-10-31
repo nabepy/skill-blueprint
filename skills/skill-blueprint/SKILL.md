@@ -146,6 +146,7 @@ python -I "${CLAUDE_PLUGIN_ROOT}/skills/skill-blueprint/scripts/render.py" bluep
   python -I "${CLAUDE_PLUGIN_ROOT}/skills/skill-blueprint/scripts/serve.py" blueprints/<フォルダ名> --detach
   ```
   表示された URL(`http://localhost:<ポート>/index.html`)をブラウザ(ビルトインブラウザ等)で開く。`file://` で開かない(自動更新とログ表示が効かない)。ユーザーが「配信しないで」と言ったときだけ省く。止めるとき: `serve.py blueprints/<フォルダ名> --stop`、状態: `--status`。
+- PDF: 設計図の右上の「PDF」ボタン(印刷ダイアログで「PDFに保存」)か、`python -I "${CLAUDE_PLUGIN_ROOT}/skills/skill-blueprint/scripts/export_pdf.py" blueprints/<フォルダ名>`(ヘッドレス Edge/Chrome。既定の出力は `blueprints/<フォルダ名>/blueprint.pdf`)で、図全体を1ページのPDFにできる。ユーザーが求めたら実行して出力先を伝える。
 - 開いたら、カードの重なり・ラベルの重なり・文字のはみ出しがないか目視する。崩れていれば項目ラベルを短くする/省略するスキルを増やす等でスペックを直して再描画。
 - 報告は短く: HTMLのパス(`blueprints/<フォルダ名>/index.html`)、START にしたスキルとその理由、省略したスキル。印刷/PDFはブラウザの印刷で1ページに出る。
 

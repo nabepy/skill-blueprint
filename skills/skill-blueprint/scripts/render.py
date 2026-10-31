@@ -31,11 +31,13 @@ UI = {
     "ja": {"always": "必ず次に読む", "cond": "条件つきで読む", "back": "戻り・任意",
            "items": "項目 = SKILL.md の見出し(深さはインデント)", "hot": "● 青 = 矢印の出入り口",
            "fit": "全体", "reset": "配置リセット", "copy": "パスをコピー", "vscode": "VS Codeで開く",
-           "close": "閉じる", "copied": "コピーしました"},
+           "close": "閉じる", "copied": "コピーしました", "pdf": "PDF",
+           "pdf_tip": "印刷ダイアログで「PDFに保存」を選ぶと、図全体が1ページのPDFになります"},
     "en": {"always": "Always read next", "cond": "Read if condition holds", "back": "Return / optional",
            "items": "Items = SKILL.md headings (depth = indent)", "hot": "● blue = arrow endpoint",
            "fit": "Fit", "reset": "Reset layout", "copy": "Copy path", "vscode": "Open in VS Code",
-           "close": "Close", "copied": "Copied"},
+           "close": "Close", "copied": "Copied", "pdf": "PDF",
+           "pdf_tip": "Choose \"Save as PDF\" in the print dialog to get the whole diagram on one page"},
 }
 
 
@@ -374,7 +376,7 @@ header{{padding:22px 40px 0}}h1{{margin:0;font-size:22px}}.src{{color:var(--sub)
 .edge.optional,.edge.back{{stroke-dasharray:6 4}}.edge.back{{stroke:var(--sub)}}
 .elabel rect{{fill:var(--condbg);stroke:var(--cond);stroke-width:1}}.elabel text{{font-size:11px;fill:var(--cond)}}
 .elabel.always rect{{fill:var(--card);stroke:var(--line)}}.elabel.always text{{fill:var(--sub)}}
-@media print{{@page{{size:{int(width)}px {int(height)}px;margin:0}}header{{padding-top:12px}}.zoom{{display:none}}.wrap{{height:auto;overflow:visible}}svg{{width:100%!important}}}}
+@media print{{html,body{{-webkit-print-color-adjust:exact;print-color-adjust:exact}}header{{padding-top:12px}}.zoom,.lvbar,#pane,#sv{{display:none!important}}.wrap{{height:auto;overflow:visible}}svg{{width:100%!important}}}}
 </style></head><body>
 <header><h1>{title}</h1><div class="src">{src}</div>
 <div class="legend"><span><i></i>{ui["always"]}</span><span><i class="c"></i>{ui["cond"]}</span><span><i class="b"></i>{ui["back"]}</span><span>{ui["items"]}</span><span style="color:var(--accent)">{ui["hot"]}</span></div></header>
@@ -382,7 +384,7 @@ header{{padding:22px 40px 0}}h1{{margin:0;font-size:22px}}.src{{color:var(--sub)
 <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
 {body}
 </svg></div>
-<div class="zoom"><button id="zo">−</button><span id="zv"></span><button id="zi">＋</button><button id="zf">{ui["fit"]}</button><button id="z1">100%</button><button id="zr">{ui["reset"]}</button></div>
+<div class="zoom"><button id="zo">−</button><span id="zv"></span><button id="zi">＋</button><button id="zf">{ui["fit"]}</button><button id="z1">100%</button><button id="zr">{ui["reset"]}</button><button id="zp" title="{ui["pdf_tip"]}">{ui["pdf"]}</button></div>
 <script id="model" type="application/json">{modeljson}</script>
 <div id="pane"><div id="ph"><b id="pt"></b><div class="p" id="pp"></div><button id="pc">{ui["copy"]}</button><a id="pv" href="#">{ui["vscode"]}</a><button id="px">{ui["close"]}</button></div><div id="pb"></div></div>
 <script id="srcdata" type="application/json">{srcjson}</script>
@@ -452,6 +454,16 @@ header{{padding:22px 40px 0}}h1{{margin:0;font-size:22px}}.src{{color:var(--sub)
     W=VB.w; svgEl.style.width=(W*z)+'px';
     wrap.scrollLeft+=dx*z; wrap.scrollTop+=dy*z;
   }}
+  // --- PDF: 印刷用のページサイズを図の大きさ(+見出し)に合わせ、1ページに収める ---
+  function setPage(){{
+    var st=document.getElementById('pgsize');
+    if(!st){{ st=document.createElement('style'); st.id='pgsize'; document.head.appendChild(st); }}
+    var hh=document.querySelector('header').offsetHeight+24;
+    st.textContent='@page{{size:'+Math.ceil(VB.w)+'px '+Math.ceil(VB.h+hh)+'px;margin:0}}';
+  }}
+  window.addEventListener('beforeprint',setPage);
+  document.getElementById('zp').onclick=function(){{ setPage(); window.print(); }};
+  setPage();
   function place(sid){{ var c=M.cards[sid]; document.getElementById('c-'+sid).setAttribute('transform','translate('+c[0]+','+c[1]+')'); }}
   Object.keys(M.cards).forEach(function(sid){{
     var el=document.getElementById('c-'+sid);

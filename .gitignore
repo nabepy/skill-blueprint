@@ -4,3 +4,4 @@ __pycache__/
 blueprints/*/logs/
 blueprints/*/stats.json
 blueprints/*/.server.json
+blueprints/*/blueprint.pdf
