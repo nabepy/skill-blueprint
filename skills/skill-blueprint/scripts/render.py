@@ -31,12 +31,12 @@ UI = {
     "ja": {"always": "必ず次に読む", "cond": "条件つきで読む", "back": "戻り・任意",
            "items": "項目 = SKILL.md の見出し(深さはインデント)", "hot": "● 青 = 矢印の出入り口",
            "fit": "全体", "reset": "配置リセット", "copy": "パスをコピー", "vscode": "VS Codeで開く",
-           "close": "閉じる", "copied": "コピーしました", "pdf": "PDF", "alone": "◇ 独立スキル(他のスキルから呼ばれない)", "alone_leg": "破線の枠 = 他のスキルと結ばれない独立スキル",
+           "close": "閉じる", "copied": "コピーしました", "pdf": "PDF", "src_orig": "原文", "src_ja": "日本語", "src_en": "English", "tr_note": "翻訳(AI訳・行は原文と対応)", "alone": "◇ 独立スキル(他のスキルから呼ばれない)", "alone_leg": "破線の枠 = 他のスキルと結ばれない独立スキル",
            "pdf_tip": "印刷ダイアログで「PDFに保存」を選ぶと、図全体が1ページのPDFになります"},
     "en": {"always": "Always read next", "cond": "Read if condition holds", "back": "Return / optional",
            "items": "Items = SKILL.md headings (depth = indent)", "hot": "● blue = arrow endpoint",
            "fit": "Fit", "reset": "Reset layout", "copy": "Copy path", "vscode": "Open in VS Code",
-           "close": "Close", "copied": "Copied", "pdf": "PDF", "alone": "◇ Standalone (not called by other skills)", "alone_leg": "Dashed frame = standalone skill, not linked to others",
+           "close": "Close", "copied": "Copied", "pdf": "PDF", "src_orig": "Original", "src_ja": "日本語", "src_en": "English", "tr_note": "Translation (AI, lines match the original)", "alone": "◇ Standalone (not called by other skills)", "alone_leg": "Dashed frame = standalone skill, not linked to others",
            "pdf_tip": "Choose \"Save as PDF\" in the print dialog to get the whole diagram on one page"},
 }
 
@@ -341,6 +341,22 @@ def main(spec_path, out_path):
 
     srcdata = {sid: {"path": s["_path"], "vscode": vscode_uri(s["_path"], 0), "lines": s["_lines"]}
                for sid, s in skills.items() if s["_path"]}
+    # 翻訳(任意): <設計図>/i18n/<スキルid or スキル名>.<ja|en>.md。原文と同じ行数(1行→1行)で、パネルの表示だけを切り替える
+    i18n_dir = os.path.join(os.path.dirname(os.path.abspath(out_path)), "i18n")
+    for sid, s in skills.items():
+        if sid not in srcdata:
+            continue
+        tr = {}
+        for lang in ("ja", "en"):
+            for key in (sid, norm_skill(s.get("skill", sid))):
+                fp = os.path.join(i18n_dir, f"{key}.{lang}.md")
+                if os.path.isfile(fp):
+                    tl = open(fp, encoding="utf-8").read().splitlines()
+                    n = len(s["_lines"])
+                    tr[lang] = (tl + [""] * n)[:n]  # 行数が違っても原文の行番号に揃える(check_i18n.py で検出)
+                    break
+        if tr:
+            srcdata[sid]["tr"] = tr
     srcjson = json.dumps(srcdata, ensure_ascii=False).replace("</", "<\\/")
     modeljson = json.dumps({"cw": CARD_W, "w": int(width), "h": int(height), "lang": spec.get("ui_lang", "ja"),
                             "skill": {sid: norm_skill(s.get("skill", sid)) for sid, s in skills.items()},
@@ -374,6 +390,7 @@ header{{padding:22px 40px 0}}h1{{margin:0;font-size:22px}}.src{{color:var(--sub)
 #pane{{position:fixed;top:0;right:0;bottom:0;width:min(600px,max(48vw,380px));max-width:100vw;background:var(--card);border-left:1px solid var(--line);box-shadow:-6px 0 20px #0003;display:none;flex-direction:column;z-index:10}}
 #pane.on{{display:flex}}@media (max-width:700px){{#pane{{width:100vw;border-left:0}}.zoom{{top:auto;bottom:10px;right:10px}}header{{padding:14px 16px 0}}}}#ph{{padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px}}#ph b{{font-size:14px}}
 #ph .p{{color:var(--sub);word-break:break-all;margin:2px 0 6px}}#ph button,#ph a{{font-size:12px;border:1px solid var(--line);background:var(--head);color:var(--ink);border-radius:6px;padding:3px 8px;cursor:pointer;text-decoration:none;margin-right:4px}}
+#pl button{{margin-right:2px}}#pl button.on{{background:var(--accent);color:#fff;border-color:var(--accent)}}#pn{{font-size:11px;color:var(--cond);margin:0 0 6px}}#pn:empty{{display:none}}
 #pb{{flex:1;overflow:auto;font:12px/1.55 ui-monospace,Consolas,monospace;padding:6px 0}}
 #pb div{{display:flex;white-space:pre-wrap;word-break:break-word;padding:0 10px 0 0}}#pb i{{flex:none;width:44px;text-align:right;padding-right:10px;color:var(--sub);font-style:normal;user-select:none}}
 #pb div.hit{{background:var(--condbg);outline:1px solid var(--cond)}}
@@ -395,19 +412,30 @@ header{{padding:22px 40px 0}}h1{{margin:0;font-size:22px}}.src{{color:var(--sub)
 </svg></div>
 <div class="zoom"><button id="zo">−</button><span id="zv"></span><button id="zi">＋</button><button id="zf">{ui["fit"]}</button><button id="z1">100%</button><button id="zr">{ui["reset"]}</button><button id="zp" title="{ui["pdf_tip"]}">{ui["pdf"]}</button></div>
 <script id="model" type="application/json">{modeljson}</script>
-<div id="pane"><div id="ph"><b id="pt"></b><div class="p" id="pp"></div><button id="pc">{ui["copy"]}</button><a id="pv" href="#">{ui["vscode"]}</a><button id="px">{ui["close"]}</button></div><div id="pb"></div></div>
+<div id="pane"><div id="ph"><b id="pt"></b><div class="p" id="pp"></div><div id="pn"></div><span id="pl"></span><button id="pc">{ui["copy"]}</button><a id="pv" href="#">{ui["vscode"]}</a><button id="px">{ui["close"]}</button></div><div id="pb"></div></div>
 <script id="srcdata" type="application/json">{srcjson}</script>
 <script>
 (function(){{
   var SRC=JSON.parse(document.getElementById('srcdata').textContent);
   var pane=document.getElementById('pane'), pb=document.getElementById('pb'), cur=null, moved=false;
+  var LK='skill-blueprint:srclang', LANG='orig';
+  try{{ LANG=localStorage.getItem(LK)||'orig'; }}catch(e){{}}
+  var LBL={{orig:'{ui["src_orig"]}',ja:'{ui["src_ja"]}',en:'{ui["src_en"]}'}}, curSid=null, curLine=0;
   function show(sid,line){{
-    var d=SRC[sid]; if(!d) return; cur=d;
+    var d=SRC[sid]; if(!d) return; cur=d; curSid=sid; curLine=line;
+    var langs=['orig'].concat(Object.keys(d.tr||{{}}).sort()), use=langs.indexOf(LANG)>=0?LANG:'orig', lines=use==='orig'?d.lines:d.tr[use];
+    var pl=document.getElementById('pl'); pl.textContent='';
+    if(langs.length>1) langs.forEach(function(k){{
+      var b=document.createElement('button'); b.textContent=LBL[k]; if(k===use) b.className='on';
+      b.onclick=function(){{ LANG=k; try{{ localStorage.setItem(LK,k); }}catch(e){{}} show(curSid,curLine); }};
+      pl.appendChild(b);
+    }});
+    document.getElementById('pn').textContent=use==='orig'?'':'{ui["tr_note"]}';
     document.getElementById('pt').textContent=sid;
     document.getElementById('pp').textContent=d.path+':'+line;
     document.getElementById('pv').href=d.vscode+':'+line;
     pb.textContent='';
-    d.lines.forEach(function(t,i){{
+    lines.forEach(function(t,i){{
       var r=document.createElement('div'), n=document.createElement('i'), s=document.createElement('span');
       n.textContent=i+1; s.textContent=t||' '; r.appendChild(n); r.appendChild(s);
       if(i+1===line) r.className='hit'; pb.appendChild(r);
