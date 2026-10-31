@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """skills フォルダ配下の指定フォルダを走査し、各スキルの見出し・他スキルへの参照をJSONで出力する。
 
-usage: python scan.py <フォルダ名またはパス> [--skills-dir DIR]
+usage: python scan.py <フォルダ名 | パス | @project | @user> [--skills-dir DIR]
+  @project = <cwd>/.claude/skills   @user = ~/.claude/skills
 """
 import argparse, json, os, re, sys
 
@@ -60,13 +61,25 @@ def headings(lines):
             out.append({"line": i, "level": len(m.group(1)), "title": m.group(2)})
     return out
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("folder")
-    ap.add_argument("--skills-dir")
-    a = ap.parse_args()
-    skills_dir = find_skills_dir(a.skills_dir)
-    target = resolve_target(skills_dir, a.folder)
+def special_target(folder):
+    """@project = <cwd>/.claude/skills、@user = ~/.claude/skills"""
+    if folder == "@project":
+        t = os.path.join(os.getcwd(), ".claude", "skills")
+    elif folder == "@user":
+        t = os.path.join(os.path.expanduser("~"), ".claude", "skills")
+    else:
+        return None
+    if not os.path.isdir(t):
+        sys.exit(f"{t} がありません")
+    return t
+
+def scan(folder, skills_dir_arg=None):
+    target = special_target(folder)
+    if target:
+        skills_dir = target
+    else:
+        skills_dir = find_skills_dir(skills_dir_arg)
+        target = resolve_target(skills_dir, folder)
 
     skills = {}
     for root, dirs, files in os.walk(target):
@@ -114,7 +127,14 @@ def main():
     result = {"target": target, "skills_dir": skills_dir,
               "entry_candidates": [n for n in names if incoming[n] == 0],
               "skills": list(skills.values())}
-    json.dump(result, sys.stdout, ensure_ascii=False, indent=1)
+    return result
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("folder", help="フォルダ名 / パス / @project / @user")
+    ap.add_argument("--skills-dir")
+    a = ap.parse_args()
+    json.dump(scan(a.folder, a.skills_dir), sys.stdout, ensure_ascii=False, indent=1)
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")

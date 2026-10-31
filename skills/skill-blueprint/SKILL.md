@@ -1,6 +1,6 @@
 ---
 name: skill-blueprint
-description: skills フォルダ配下のフォルダ名を指定して、そのスキル群の「設計図」を1枚のHTMLで作る。最初に読むスキル、各スキル内のピックアップ項目、条件によって別スキルへ飛ぶ流れを矢印で結ぶ。「スキルの設計図」「skillの関係図」「どのskillから読むか」「skillの流れを1枚で」と言われたとき、または /skill-blueprint <フォルダ名> [言語] を実行したときに使う。
+description: skills フォルダ配下のフォルダ名を指定して、そのスキル群の「設計図」を1枚のHTMLで作る。最初に読むスキル、各スキル内のピックアップ項目、条件によって別スキルへ飛ぶ流れを矢印で結ぶ。「スキルの設計図」「skillの関係図」「どのskillから読むか」「skillの流れを1枚で」と言われたとき、または /skill-blueprint <対象> [言語] [全体|個別] を実行したときに使う。対象は skills 内のフォルダ名、パス、@project(.claude/skills)、@user(~/.claude/skills)。
 ---
 
 # skill-blueprint
@@ -10,9 +10,14 @@ description: skills フォルダ配下のフォルダ名を指定して、その
 ## 呼び出し方
 
 ```
-/skill-blueprint <フォルダ名> [言語]
+/skill-blueprint <対象> [言語] [全体|個別]
 ```
 
+- **対象**: `skills/` 以下のフォルダ名、フォルダのパス、`@project`(`<プロジェクト>/.claude/skills`)、`@user`(`~/.claude/skills`)。
+- **範囲**(2通りから選ぶ。省略時は「全体」)
+  - **全体**: 対象にあるスキルを全部1枚に。スキル同士の呼び出し関係が分かる。出力は `blueprints/<対象名>/`(`@project` は `project-skills`)。
+  - **個別**: スキル1つにつき1枚。各スキルの `SKILL.md` の見出しと `references/` 等のファイルの関係を見る。出力は `blueprints/<スキル名>/`。スキル名を1つ指定すればそのスキルだけ、指定しなければ対象の全スキルぶん作る(数が多いときは先に件数を伝えて確認する)。
+  - ユーザーが「全体」「個別」を言っていなければ、全体で作り、「個別にもできます」と一言添える。聞き返さない。
 - **言語を省略** → 書かれているスキルの言語のまま(既定)。見出し・説明・矢印ラベルはすべてスキル原文の言語で書く(英語のスキルなら英語、日本語なら日本語)。
 - **言語を指定**(例: `日本語` `ja` `en` `中文`)→ その言語に訳す。訳すもの: 各スキルの `summary`、矢印の `label`、見出し(下の「翻訳」)。
 - 言語がどちらか分からないときだけ、1回聞く。聞かれていない翻訳はしない。
@@ -47,6 +52,19 @@ python -I "${CLAUDE_PLUGIN_ROOT}/skills/skill-blueprint/scripts/scan.py" <フォ
 - `skills` ディレクトリは cwd から上方向に自動検出する。見つからなければ `--skills-dir <path>`。
 - 出力JSON: 各スキルの `description` / `headings`(行番号つき) / `refs`(他スキルへの言及: 行・節・原文)と、被参照ゼロの `entry_candidates`。
 - 出力は大きいことがあるので、ファイルに落として必要な部分だけ読む。**`refs` は機械的な文字列一致なので、必ず原文(`text`)と該当箇所を自分で確認して判断する。**
+- `<フォルダ名>` には `@project` / `@user` も使える(上の「呼び出し方」)。
+
+**下書き**: 範囲に応じて、スペックの下書きを機械的に作ってから仕上げる(ゼロから書くより速く、抜けが出ない)。
+
+```bash
+python -I "${CLAUDE_PLUGIN_ROOT}/skills/skill-blueprint/scripts/scaffold.py" <対象> --mode all            # 全体 → blueprints/<対象名>/spec.json
+python -I "${CLAUDE_PLUGIN_ROOT}/skills/skill-blueprint/scripts/scaffold.py" <対象> --mode each           # 個別(全スキルぶん)
+python -I "${CLAUDE_PLUGIN_ROOT}/skills/skill-blueprint/scripts/scaffold.py" <対象> --mode each --skill <スキル名>   # 個別(1つ)
+```
+
+- 下書きの矢印は、言及行から機械的に作ったもの(条件語があれば `conditional`、無ければ `always`)。**必ず原文を確認し、誤検出を消し、ラベルを推敲し、`summary` を整える**(下の「2. 設計を決める」の規則がそのまま当てはまる)。
+- 個別モードの下書きは、`SKILL.md` のカード1枚と、`references/*.md` などのカードを、SKILL.md が言及している行から結んだもの。節ごとに分けたいときは `range` を使う(下記)。
+- 既存の `spec.json` は上書きしない(`--force` で上書き)。
 
 ### 2. 設計を決める(ここが本題。スクリプトに任せない)
 
