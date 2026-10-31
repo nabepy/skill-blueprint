@@ -1,0 +1,192 @@
+{
+ "title": "cc-company (company スキル) の設計図",
+ "source": "(例) 1スキルの SKILL.md を節ごとのカードに分け、付属 .md と条件つきの矢印で結んだ設計",
+ "entry": "company",
+ "heading_levels": 3,
+ "skills": [
+  {
+   "id": "company",
+   "skill": "company",
+   "name": "company  (/company) : いつ使うか・Step 1",
+   "summary": "秘書から始める仮想組織スキル。入口はここだけ",
+   "path": "<スキルの絶対パス>/SKILL.md",
+   "range": [
+    9,
+    27
+   ]
+  },
+  {
+   "id": "onboarding",
+   "skill": "company",
+   "name": "company : オンボーディング",
+   "summary": "Step 2〜3: 3問ヒアリング → .company/ を自動生成",
+   "path": "<スキルの絶対パス>/SKILL.md",
+   "range": [
+    28,
+    112
+   ]
+  },
+  {
+   "id": "migration",
+   "skill": "company",
+   "name": "company : v1 → v2 マイグレーション",
+   "summary": "旧構成(ceo/ あり)を検出したときだけ実行",
+   "path": "<スキルの絶対パス>/SKILL.md",
+   "range": [
+    113,
+    145
+   ]
+  },
+  {
+   "id": "ops",
+   "skill": "company",
+   "name": "company : 運営モード",
+   "summary": "秘書が窓口。内容を判断して直接対応か部署へ振り分け",
+   "path": "<スキルの絶対パス>/SKILL.md",
+   "range": [
+    146,
+    222
+   ]
+  },
+  {
+   "id": "adddept",
+   "skill": "company",
+   "name": "company : 部署の自然な追加",
+   "summary": "同領域のタスクが2回以上、または明示依頼で部署を作る",
+   "path": "<スキルの絶対パス>/SKILL.md",
+   "range": [
+    223,
+    259
+   ]
+  },
+  {
+   "id": "mcp",
+   "skill": "company",
+   "name": "company : MCP 連携の提案",
+   "summary": "外部サービス連携が便利な場面で導入を案内",
+   "path": "<スキルの絶対パス>/SKILL.md",
+   "range": [
+    260,
+    299
+   ]
+  },
+  {
+   "id": "rules",
+   "skill": "company",
+   "name": "company : 運用ルール・ファイル参照・注意事項",
+   "summary": "自動記録・同日1ファイル・命名規則など",
+   "path": "<スキルの絶対パス>/SKILL.md",
+   "range": [
+    300,
+    347
+   ]
+  },
+  {
+   "id": "ref-tpl",
+   "name": "references/claude-md-template.md",
+   "summary": ".company/CLAUDE.md の生成テンプレート",
+   "path": "<スキルの絶対パス>/references/claude-md-template.md",
+   "heading_levels": 2
+  },
+  {
+   "id": "ref-dept",
+   "name": "references/departments.md",
+   "summary": "部署別テンプレート集(10種)と各部署の CLAUDE.md",
+   "path": "<スキルの絶対パス>/references/departments.md",
+   "heading_levels": 2
+  }
+ ],
+ "edges": [
+  {
+   "from": "company",
+   "from_item": "L26",
+   "to": "onboarding",
+   "label": ".company/ が無いとき(L26)",
+   "kind": "conditional"
+  },
+  {
+   "from": "company",
+   "from_item": "L24",
+   "to": "migration",
+   "label": ".company/ceo/ があるとき=v1(L24)",
+   "kind": "conditional"
+  },
+  {
+   "from": "company",
+   "from_item": "L25",
+   "to": "ops",
+   "label": ".company/ があるとき=v2(L25)",
+   "kind": "conditional"
+  },
+  {
+   "from": "onboarding",
+   "from_item": "L87",
+   "to": "ref-tpl",
+   "label": ".company/CLAUDE.md を生成(L78)",
+   "kind": "always"
+  },
+  {
+   "from": "onboarding",
+   "from_item": "L87",
+   "to": "ref-dept",
+   "label": "secretary/CLAUDE.md と TODO を生成(L86, L87)",
+   "kind": "always"
+  },
+  {
+   "from": "onboarding",
+   "from_item": "L89",
+   "to": "ops",
+   "label": "次回以降の /company",
+   "kind": "optional"
+  },
+  {
+   "from": "migration",
+   "from_item": "L132",
+   "to": "ref-tpl",
+   "label": "承認: v2 テンプレートで再生成(L138)",
+   "kind": "conditional"
+  },
+  {
+   "from": "migration",
+   "from_item": "L142",
+   "to": "ops",
+   "label": "拒否: v1 のまま運営(L144)",
+   "kind": "conditional"
+  },
+  {
+   "from": "ops",
+   "from_item": "L173",
+   "to": "adddept",
+   "label": "部署が必要な依頼が重なったとき(L173)",
+   "kind": "conditional"
+  },
+  {
+   "from": "ops",
+   "from_item": "L162",
+   "to": "mcp",
+   "label": "予定・文書・Issue の話題が出たとき(L162)",
+   "kind": "conditional"
+  },
+  {
+   "from": "ops",
+   "from_item": "L148",
+   "to": "rules",
+   "label": "常に適用(L302〜)",
+   "kind": "optional"
+  },
+  {
+   "from": "adddept",
+   "from_item": "L247",
+   "to": "ref-dept",
+   "label": "部署テンプレートを取得(L249)",
+   "kind": "always"
+  },
+  {
+   "from": "adddept",
+   "from_item": "L247",
+   "to": "ref-tpl",
+   "label": "組織構成・部署一覧を更新(L252)",
+   "kind": "always"
+  }
+ ]
+}

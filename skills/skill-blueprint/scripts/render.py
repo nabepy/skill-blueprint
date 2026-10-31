@@ -169,7 +169,7 @@ def main(spec_path, out_path):
         s["_sum"] = wrap(s.get("summary", ""), inner_w, F_SUM, 2)
         # 独立スキル: 矢印が1本もない(START 以外)か、standalone を指定したスキル。起動条件の注記を添える
         linked_ids = {e["from"] for e in edges} | {e["to"] for e in edges}
-        alone = s["id"] != entry and (bool(s.get("standalone")) or s["id"] not in linked_ids)
+        alone = s["id"] != entry and not s.get("part") and (bool(s.get("standalone")) or s["id"] not in linked_ids)
         s["_alone"] = alone
         note = s["standalone"] if isinstance(s.get("standalone"), str) else ""
         s["_note"] = wrap(ui["alone_file" if s.get("file") else "alone"] + (": " + note if note else ""), inner_w, F_SUM, 4) if alone else []
