@@ -388,7 +388,7 @@ header{{padding:22px 40px 0}}h1{{margin:0;font-size:22px}}.src{{color:var(--sub)
 .name{{font-size:14px;font-weight:700;fill:var(--ink)}}.sum{{font-size:11px;fill:var(--sub)}}
 .item{{font-size:12px;fill:var(--ink)}}.ref{{font-size:10px;fill:var(--sub)}}
 #pane{{position:fixed;top:0;right:0;bottom:0;width:min(600px,max(48vw,380px));max-width:100vw;background:var(--card);border-left:1px solid var(--line);box-shadow:-6px 0 20px #0003;display:none;flex-direction:column;z-index:10}}
-#pane.on{{display:flex}}@media (max-width:700px){{#pane{{width:100vw;border-left:0}}.zoom{{top:auto;bottom:10px;right:10px}}header{{padding:14px 16px 0}}}}#ph{{padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px}}#ph b{{font-size:14px}}
+#pane.on{{display:flex}}body.pane-on .wrap{{margin-right:var(--pw,0px)}}body.pane-on .zoom{{right:calc(var(--pw,0px) + 16px)}}@media (max-width:700px){{body.pane-on .wrap{{margin-right:0}}body.pane-on .zoom{{right:10px}}#pane{{width:100vw;border-left:0}}.zoom{{top:auto;bottom:10px;right:10px}}header{{padding:14px 16px 0}}}}#ph{{padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px}}#ph b{{font-size:14px}}
 #ph .p{{color:var(--sub);word-break:break-all;margin:2px 0 6px}}#ph button,#ph a{{font-size:12px;border:1px solid var(--line);background:var(--head);color:var(--ink);border-radius:6px;padding:3px 8px;cursor:pointer;text-decoration:none;margin-right:4px}}
 #pl button{{margin-right:2px}}#pl button.on{{background:var(--accent);color:#fff;border-color:var(--accent)}}#pn{{font-size:11px;color:var(--cond);margin:0 0 6px}}#pn:empty{{display:none}}
 #pb{{flex:1;overflow:auto;font:12px/1.55 ui-monospace,Consolas,monospace;padding:6px 0}}
@@ -455,6 +455,14 @@ header{{padding:22px 40px 0}}h1{{margin:0;font-size:22px}}.src{{color:var(--sub)
     var g=e.target.closest('.lnk'); if(g) show(g.dataset.sid, parseInt(g.dataset.line,10));
   }});
   window.addEventListener('keydown',function(e){{ if(e.key==='Escape') pane.classList.remove('on'); }});
+  // ペインが開いている間は図の右側にペイン幅ぶんの余白を取り、隠れる部分もスクロールで見られるようにする
+  function syncPane(){{
+    var on=pane.classList.contains('on');
+    document.documentElement.style.setProperty('--pw', on ? pane.offsetWidth+'px' : '0px');
+    document.body.classList.toggle('pane-on', on);
+  }}
+  new MutationObserver(syncPane).observe(pane,{{attributes:true,attributeFilter:['class']}});
+  window.addEventListener('resize',syncPane);
 
   // --- カードのドラッグ移動(矢印・ラベルは追従) ---
   var M=JSON.parse(document.getElementById('model').textContent), P0=JSON.parse(JSON.stringify(M.cards));
