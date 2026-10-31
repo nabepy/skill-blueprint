@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import scan as S
 
 COND = re.compile(r"\b(if|when|unless|only|otherwise|in case|depending)\b|場合|とき|なら|以外|必要に応じ|ない時|する時", re.I)
+REF_MAX_SKILLS = 5  # 全体モードで references/*.md もカードにするのは、スキルがこの数以下のとき(多いと図が膨らむので「個別」へ)
 START = re.compile(r"(start|begin|any conversation|before any|最初|開始|会話の)", re.I)
 
 
@@ -79,9 +80,25 @@ def mode_all(res, folder, outdir, force):
             edges.append(e)
     # 他から参照されず、参照もしない独立スキルには矢印を引かない(根拠のない矢印は作らない)。
     # render.py が破線の枠で描くので、spec の skills[].standalone に起動条件を書く
+    ref_cards = []
+    if len(skills) <= REF_MAX_SKILLS:  # スキルが少ない図では、SKILL.md が読む references/*.md も1枚のカードにする
+        for n, s in skills.items():
+            lines = open(s["path"], encoding="utf-8", errors="replace").read().splitlines()
+            for f in s["files"]:
+                if not f.endswith(".md"):
+                    continue
+                pat = re.compile(r"(?<![\w/.-])" + re.escape(f) + r"|(?<![\w/.-])" + re.escape(os.path.basename(f)) + r"(?![\w.-])")
+                hit = next(((i, ln) for i, ln in enumerate(lines, 1) if pat.search(ln)), None)
+                if not hit:
+                    continue  # SKILL.md が名指ししていないファイルは載せない(根拠のない矢印を作らない)
+                i, ln = hit
+                cid = f"{n}--ref-{sid(f)}"
+                ref_cards.append({"id": cid, "name": f"{n}/{f}", "summary": "", "path": os.path.join(s["dir"], f), "heading_levels": 2})
+                edges.append({"from": n, "from_item": f"L{i}", "to": cid, "label": f"{short(ln)} (L{i})",
+                              "kind": "conditional" if COND.search(ln) else "always"})
     spec = {"title": f"{target_name(folder)} の設計図", "source": res["target"], "base": res["target"],
             "entry": entry, "heading_levels": 2,
-            "skills": [{"id": n, "summary": first_sentence(s["description"]), "path": s["path"]} for n, s in skills.items()],
+            "skills": [{"id": n, "summary": first_sentence(s["description"]), "path": s["path"]} for n, s in skills.items()] + ref_cards,
             "edges": edges}
     return write(spec, outdir, target_name(folder), force)
 
