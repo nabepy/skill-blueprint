@@ -1,7 +1,7 @@
 {
   "name": "skill-blueprint",
   "description": "skills フォルダ内のスキル群を、最初に読むスキル・各スキルの見出し・条件つきの遷移を矢印で結んだ1枚の設計図(HTML)にする。実行ログの重ね表示と統計つき。",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": {
     "name": "nabepy",
     "url": "https://github.com/nabepy"

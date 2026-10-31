@@ -11,7 +11,7 @@ usage: python scaffold.py <対象> --mode all|each [--skill 名前] [--out bluep
 下書きの判断はすべて機械的: 他スキル/参照ファイルの言及行を矢印にし、条件語(if/when/場合/とき...)があれば
 条件つき、無ければ「必ず」とする。START は被参照ゼロのスキルから選ぶ。
 """
-import argparse, json, os, re, sys
+import argparse, json, os, re, shutil, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import scan as S
@@ -47,9 +47,21 @@ def target_name(folder):
 def write(spec, outdir, name, force):
     d = os.path.join(outdir, name)
     p = os.path.join(d, "spec.json")
-    if os.path.exists(p) and not force:
-        print(f"skip (exists): {p}   (--force で上書き)")
-        return None
+    if os.path.exists(p):
+        try:
+            old = json.load(open(p, encoding="utf-8"))
+        except ValueError:
+            old = {}
+        have = {c.get("id") for c in old.get("skills", [])}
+        missing = [c["id"] for c in spec["skills"] if c["id"] not in have]
+        if not force and not missing:
+            print(f"skip (exists): {p}   (--force で上書き)")
+            return None
+        # 古い設計に、今の下書きにあるカード(付属 .md・節)が足りない → 旧版を退避して作り直す
+        bak = os.path.join(d, "spec.prev.json")
+        shutil.copyfile(p, bak)
+        print(f"既存の spec.json にはカードが足りない({len(missing)} 枚)ため作り直します。旧版は {bak} に退避しました" if missing
+              else f"上書きします。旧版は {bak} に退避しました")
     os.makedirs(d, exist_ok=True)
     json.dump(spec, open(p, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     print(f"wrote {p}  ({len(spec['skills'])} cards, {len(spec['edges'])} edges)")
