@@ -126,12 +126,14 @@
     ub.style.display = unlN ? '' : 'none';
     ub.textContent = L.outside + ': ' + unlN;
     ub.title = Object.keys(a.unl).map(function (k) { return k + ' ×' + a.unl[k]; }).join('\n');
+    // 通った矢印が1本もないうちは、全部を薄くしても比べる相手がないので薄くしない
+    var anyHit = M.edges.some(function (e) { return a.edges[skillOf[e.a] + '>' + skillOf[e.b]] > 0; });
     M.edges.forEach(function (e, i) {
       var k = skillOf[e.a] + '>' + skillOf[e.b], n = a.edges[k] || 0, p = $('#e' + i), l = $('#l' + i);
-      p.classList.toggle('dim', has && !n); p.classList.toggle('hit', n > 0);
+      p.classList.toggle('dim', anyHit && !n); p.classList.toggle('hit', n > 0);
       p.classList.toggle('recent', mode === 'latest' && k === lastEdge);
       p.style.strokeWidth = n ? Math.min(9, 2.5 + n * 1.2) : '';
-      if (l) l.classList.toggle('dim', has && !n);
+      if (l) l.classList.toggle('dim', anyHit && !n);
     });
     var max = 1; Object.keys(a.items).forEach(function (k) { max = Math.max(max, a.items[k].n); });
     document.querySelectorAll('.rowbg').forEach(function (r) {

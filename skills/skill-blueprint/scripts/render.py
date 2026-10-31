@@ -398,7 +398,7 @@ header{{padding:22px 40px 0}}h1{{margin:0;font-size:22px}}.src{{color:var(--sub)
 .card,.elabel{{cursor:move}}.lnk{{cursor:pointer}}.lnk:hover text{{text-decoration:underline;fill:var(--accent)}}
 .sep{{stroke:var(--line);stroke-width:1}}.dot{{fill:var(--sub);opacity:.5}}.dot.hot{{fill:var(--accent);opacity:1}}.hotitem{{font-weight:700}}
 .badge rect{{fill:var(--entry)}}.badge text{{fill:#fff;font-size:11px;font-weight:700}}
-.edge{{fill:none;stroke:var(--accent);stroke-width:1.8}}.edge.conditional{{stroke:var(--cond)}}
+.edge{{fill:none;stroke:var(--accent);stroke-width:2}}.edge.conditional{{stroke:var(--cond)}}
 .edge.optional,.edge.back{{stroke-dasharray:6 4}}.edge.back{{stroke:var(--sub)}}
 .elabel rect{{fill:var(--condbg);stroke:var(--cond);stroke-width:1}}.elabel text{{font-size:11px;fill:var(--cond)}}
 .elabel.always rect{{fill:var(--card);stroke:var(--line)}}.elabel.always text{{fill:var(--sub)}}
