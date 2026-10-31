@@ -162,7 +162,8 @@ def build_sessions(spec, evs):
                     continue
                 if visits and visits[-1]["skill"] == e["skill"] and e["type"] == "skill" and visits[-1]["via"] == "prompt":
                     continue  # /name のあとの Skill 呼び出しは同じ訪問
-                visits.append({"skill": e["skill"], "ts": e["ts"], "via": "prompt" if e["type"] == "prompt_skill" else "tool"})
+                visits.append({"skill": e["skill"], "ts": e["ts"], "via": "prompt" if e["type"] == "prompt_skill" else "tool",
+                               "listed": e.get("listed", True)})
         if not visits:
             continue
         transcript = next((e["transcript"] for e in es if e.get("transcript")), "")
@@ -190,20 +191,27 @@ def aggregate(spec, sessions):
     card_of = {s["id"]: card_skill(s) for s in spec["skills"]}
     planned = {(card_of[e["from"]], card_of[e["to"]]) for e in spec.get("edges", [])
                if e["from"] in card_of and e["to"] in card_of and card_of[e["from"]] != card_of[e["to"]]}
-    sk, ed, un, it, vis = {}, {}, {}, {}, {}
+    sk, ed, un, it, ul, via = {}, {}, {}, {}, {}, {}
     for s in sessions:
         p = s["path"]
         for i, v in enumerate(p):
-            sk[v["skill"]] = sk.get(v["skill"], 0) + 1
+            listed = v.get("listed", True)
+            d0 = sk if listed else ul
+            d0[v["skill"]] = d0.get(v["skill"], 0) + 1
             for ln in v["items"]:
                 k = f'{v["skill"]}:{ln}'
                 it[k] = it.get(k, 0) + 1
             if i:
-                a, b = p[i - 1]["skill"], v["skill"]
+                pv = p[i - 1]
+                a, b = pv["skill"], v["skill"]
                 if a != b:
-                    d = ed if (a, b) in planned else un
+                    if pv.get("listed", True) and listed:
+                        d = ed if (a, b) in planned else un
+                    else:
+                        d = via  # 設計図にないスキルをまたぐ遷移は、矢印の回数に混ぜない
                     d[f"{a}>{b}"] = d.get(f"{a}>{b}", 0) + 1
-    return {"sessions": len(sessions), "skills": sk, "edges": ed, "unexpected": un, "items": it}
+    return {"sessions": len(sessions), "skills": sk, "edges": ed, "unexpected": un, "items": it,
+            "unlisted": ul, "via_unlisted": via}
 
 
 def main(bp):

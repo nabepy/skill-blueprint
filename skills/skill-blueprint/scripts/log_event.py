@@ -8,9 +8,10 @@ hooks (install_hooks.py が登録):
   Stop / SessionEnd        → turn_end / session_end を記録し、事後解析 (analyze.py) をバックグラウンド起動
 
 書き込み先: <プロジェクト>/blueprints/<設計図名>/logs/events.jsonl
-(その設計図のスペックに含まれるスキルだけ。本文は保存せず、スキル名・行範囲・セッションIDのみ)
+(本文は保存せず、スキル名・行範囲・セッションIDのみ。スキルの呼び出しは、設計図に載っていないものも
+ listed=false で記録する。SKILL.md の読み込みは載っているスキルだけ)
 """
-import datetime, json, os, subprocess, sys
+import datetime, glob, json, os, re, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -32,6 +33,18 @@ def blueprints(root):
                 continue
             names = {norm(s.get("skill", s["id"])) for s in data.get("skills", [])}
             yield os.path.join(base, d), names
+
+
+def is_skill(name, root):
+    """/<name> がスキルか(/clear などの組み込みコマンドを除く)。プロジェクト・ユーザー・プラグインのスキルを探す。"""
+    if not re.fullmatch(r"[\w.\-]+", name or ""):
+        return False
+    home = os.path.expanduser("~")
+    for base in (os.path.join(root, ".claude", "skills"), os.path.join(home, ".claude", "skills")):
+        if os.path.isfile(os.path.join(base, name, "SKILL.md")):
+            return True
+    pat = os.path.join(home, ".claude", "plugins", "**", "skills", name, "SKILL.md")
+    return bool(glob.glob(pat, recursive=True))
 
 
 def has_session(logfile, sid):
@@ -83,12 +96,17 @@ def main():
 
     for bpdir, names in blueprints(root):
         logfile = os.path.join(bpdir, "logs", "events.jsonl")
+        out = ev
         if skill:
-            if skill not in names:
+            listed = skill in names
+            # 設計図にないスキルも「呼び出し」は記録する(経路のずれを防ぐ)。ただし読み込みは載っているものだけ
+            if not listed and (ev["type"] in ("read", "skill_done") or
+                               (ev["type"] == "prompt_skill" and not is_skill(skill, root))):
                 continue
+            out = dict(ev, listed=listed)
         elif not has_session(logfile, ev["session"]):
             continue  # スキルを使っていないセッションの終了は記録しない
-        append(bpdir, ev)
+        append(bpdir, out)
         if ev["type"] in ("turn_end", "session_end"):
             kw = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL, "stdin": subprocess.DEVNULL}
             if os.name == "nt":

@@ -9,6 +9,8 @@
       estItems: '通過と推定した項目', skillUse: 'スキルの利用回数', edgesH: '矢印(遷移)の通過回数', itemsH: '通った項目(推定)',
       sessH: 'セッション一覧', back: '設計図に戻る', unused: '未使用', planned: '設計図の矢印', unplanned: '想定外(設計図に無い遷移)',
       share: '出口の割合', visits: '訪問', est: '推定', noData: 'まだログがありません', times: '回',
+      outside: '設計図にない', outsideH: '設計図にないスキル', viaH: '設計図にないスキルをまたいだ遷移',
+      viaNote: '間に設計図にないスキルが挟まった遷移です。上の矢印の回数には混ぜていません。',
       estNote: '項目は会話ログの文面と見出しを照合した推定です(スキル・矢印の回数はhooksの記録で正確)。',
       fileNote: 'file:// で開いているため自動更新できません。ログを読み込むか、serve.py で配信してください。'},
     en: {blueprint: 'Blueprint', stats: 'Stats', latest: 'Latest session', all: 'All sessions', analyze: 'Re-analyze',
@@ -17,6 +19,8 @@
       estItems: 'Items estimated', skillUse: 'Skill usage', edgesH: 'Arrow (transition) counts', itemsH: 'Items passed (estimated)',
       sessH: 'Sessions', back: 'Back to blueprint', unused: 'unused', planned: 'Blueprint arrows', unplanned: 'Unexpected (not in blueprint)',
       share: 'Share of exits', visits: 'visits', est: 'est.', noData: 'No logs yet', times: '',
+      outside: 'not in blueprint', outsideH: 'Skills not in the blueprint', viaH: 'Transitions through skills not in the blueprint',
+      viaNote: 'Transitions with a skill outside the blueprint in between. Not counted in the arrow counts above.',
       estNote: 'Items are estimated by matching the transcript with headings (skill/arrow counts are exact, from hooks).',
       fileNote: 'Opened via file:// so it cannot auto-refresh. Load the logs, or serve with serve.py.'}
   };
@@ -36,6 +40,7 @@
   var bar = document.createElement('div'); bar.className = 'lvbar';
   bar.innerHTML = '<button id="vb" class="on">' + L.blueprint + '</button><button id="vs">' + L.stats + '</button>' +
     '<span class="chip" id="chip"><i></i><span id="chipt">' + L.noLog + '</span></span>' +
+    '<button id="unl" style="display:none"></button>' +
     '<select id="sel"><option value="latest">' + L.latest + '</option><option value="all">' + L.all + '</option></select>' +
     '<button id="an" style="display:none">' + L.analyze + '</button>' +
     '<label class="btn" id="fe" style="display:none">' + L.loadEv + '<input type="file" accept=".jsonl,.json,.txt"></label>' +
@@ -60,7 +65,7 @@
         if (e.type !== 'skill' && e.type !== 'prompt_skill') return;
         var last = visits[visits.length - 1];
         if (last && last.skill === e.skill && (e.ts.slice(0, 19) <= last.ts.slice(0, 19) || (e.type === 'skill' && last.via === 'prompt'))) return;
-        visits.push({skill: e.skill, ts: e.ts, via: e.type === 'prompt_skill' ? 'prompt' : 'tool'});
+        visits.push({skill: e.skill, ts: e.ts, via: e.type === 'prompt_skill' ? 'prompt' : 'tool', listed: e.listed !== false});
       });
       return {id: sid, start: es[0].ts, last: es[es.length - 1].ts, ended: es.some(function (e) { return e.type === 'session_end'; }), path: visits};
     }).filter(function (s) { return s.path.length; });
@@ -71,15 +76,18 @@
     return sessions.filter(function (s) { return s.id === mode; });
   }
   function aggregate(sel) {
-    var a = {skills: {}, edges: {}, items: {}, last: null, calls: 0, unexp: {}};
+    var a = {skills: {}, edges: {}, items: {}, last: null, calls: 0, unexp: {}, unl: {}, via: {}};
     var planned = {}; M.edges.forEach(function (e) { planned[skillOf[e.a] + '>' + skillOf[e.b]] = 1; });
     sel.forEach(function (s) {
       s.path.forEach(function (v, i) {
-        a.calls++; a.skills[v.skill] = (a.skills[v.skill] || 0) + 1;
+        a.calls++;
+        var d0 = v.listed ? a.skills : a.unl; d0[v.skill] = (d0[v.skill] || 0) + 1;
         var it = visitItems[s.id + '|' + v.ts] || {};
         Object.keys(it).forEach(function (ln) { var k = v.skill + ':' + ln; (a.items[k] = a.items[k] || {n: 0, why: it[ln].why, score: it[ln].score}).n++; });
         if (i && s.path[i - 1].skill !== v.skill) {
-          var k2 = s.path[i - 1].skill + '>' + v.skill, d = planned[k2] ? a.edges : a.unexp;
+          // 設計図にないスキルをまたぐ遷移は、矢印の回数に混ぜず別に数える
+          var k2 = s.path[i - 1].skill + '>' + v.skill,
+              d = (s.path[i - 1].listed && v.listed) ? (planned[k2] ? a.edges : a.unexp) : a.via;
           d[k2] = (d[k2] || 0) + 1;
         }
       });
@@ -108,10 +116,16 @@
     });
     var ls = a.last;
     if (ls && !ls.ended && Date.now() - Date.parse(ls.last) < 600000) {
-      var cs = ls.path[ls.path.length - 1].skill; if (rep[cs]) $('#c-' + rep[cs]).classList.add('cur');
+      var cs = ls.path[ls.path.length - 1].skill; if (rep[cs] && ls.path[ls.path.length - 1].listed) $('#c-' + rep[cs]).classList.add('cur');
     }
     var lastEdge = null;
-    if (ls && ls.path.length > 1) lastEdge = ls.path[ls.path.length - 2].skill + '>' + ls.path[ls.path.length - 1].skill;
+    if (ls && ls.path.length > 1 && ls.path[ls.path.length - 2].listed && ls.path[ls.path.length - 1].listed)
+      lastEdge = ls.path[ls.path.length - 2].skill + '>' + ls.path[ls.path.length - 1].skill;
+    // 設計図にないスキルの件数(クリックで統計ビューへ)
+    var unlN = Object.keys(a.unl).reduce(function (t, k) { return t + a.unl[k]; }, 0), ub = $('#unl');
+    ub.style.display = unlN ? '' : 'none';
+    ub.textContent = L.outside + ': ' + unlN;
+    ub.title = Object.keys(a.unl).map(function (k) { return k + ' ×' + a.unl[k]; }).join('\n');
     M.edges.forEach(function (e, i) {
       var k = skillOf[e.a] + '>' + skillOf[e.b], n = a.edges[k] || 0, p = $('#e' + i), l = $('#l' + i);
       p.classList.toggle('dim', has && !n); p.classList.toggle('hit', n > 0);
@@ -133,7 +147,8 @@
     if (!sessions.length) { chip.className = 'chip'; tx.textContent = L.noLog; return; }
     var cur = sessions[sessions.length - 1], fresh = !cur.ended && Date.now() - Date.parse(cur.last) < 120000;
     chip.className = 'chip' + (fresh ? ' live' : '');
-    tx.textContent = (fresh ? L.live + ': ' + cur.path[cur.path.length - 1].skill : (cur.ended ? L.ended : L.idle)) + '  (' + cur.id.slice(0, 8) + ')';
+    var lv = cur.path[cur.path.length - 1];
+    tx.textContent = (fresh ? L.live + ': ' + lv.skill + (lv.listed ? '' : ' (' + L.outside + ')') : (cur.ended ? L.ended : L.idle)) + '  (' + cur.id.slice(0, 8) + ')';
   }
 
   // ---- 統計ビュー ----
@@ -165,6 +180,17 @@
       rows += '<tr><td>' + esc(p[0]) + ' → ' + esc(p[1]) + ' <small style="color:#d64545">(' + L.unplanned + ')</small></td><td class="num">' + n + '</td><td class="num">' + pct(n, out[p[0]]) + '</td><td><span class="bar bad" style="width:' + Math.min(300, n * 30) + 'px"></span></td></tr>';
     });
     h += '<h2>' + L.edgesH + '</h2><table><tr><th></th><th class="num">' + L.times + '</th><th class="num">' + L.share + '</th><th></th></tr>' + rows + '</table>';
+    // 設計図にないスキル
+    var ulk = Object.keys(a.unl).sort(function (x, y) { return a.unl[y] - a.unl[x]; });
+    if (ulk.length || Object.keys(a.via).length) {
+      h += '<h2>' + L.outsideH + '</h2><table>' + ulk.map(function (k) {
+        return '<tr><td style="width:260px">' + esc(k) + '</td><td class="num">' + a.unl[k] + L.times + '</td></tr>';
+      }).join('') + '</table>';
+      h += '<h2>' + L.viaH + '</h2><div class="note">' + esc(L.viaNote) + '</div><table>' + Object.keys(a.via).sort().map(function (k) {
+        var p = k.split('>');
+        return '<tr><td>' + esc(p[0]) + ' → ' + esc(p[1]) + '</td><td class="num">' + a.via[k] + '</td></tr>';
+      }).join('') + '</table>';
+    }
     // 項目
     h += '<h2>' + L.itemsH + '</h2>';
     skillNames.forEach(function (s) {
@@ -180,7 +206,7 @@
     // セッション
     h += '<h2>' + L.sessH + '</h2><table>' + sessions.slice().reverse().map(function (s) {
       return '<tr><td style="width:150px"><a class="pick" data-sid="' + esc(s.id) + '">' + esc(s.id.slice(0, 8)) + '</a><br><small class="zero">' + esc(new Date(s.start).toLocaleString()) + '</small></td><td class="path">' +
-        s.path.map(function (v) { return '<span>' + esc(v.skill) + '</span>'; }).join(' → ') + '</td><td class="num zero">' + (s.ended ? L.ended : '') + '</td></tr>';
+        s.path.map(function (v) { return v.listed ? '<span>' + esc(v.skill) + '</span>' : '<span style="border-style:dashed;color:var(--sub)" title="' + esc(L.outside) + '">' + esc(v.skill) + '</span>'; }).join(' → ') + '</td><td class="num zero">' + (s.ended ? L.ended : '') + '</td></tr>';
     }).join('') + '</table>';
     if (!sessions.length) h += '<p class="zero">' + L.noData + '</p>';
     sv.innerHTML = h;
@@ -211,6 +237,7 @@
     (s.sessions || []).forEach(function (se) { se.path.forEach(function (v) { visitItems[se.id + '|' + v.ts] = v.items || {}; }); });
   }
   $('#vb').onclick = function () { show('bp'); }; $('#vs').onclick = function () { show('st'); };
+  $('#unl').onclick = function () { show('st'); };
   $('#sel').onchange = function () { mode = this.value; refresh(); };
 
   var lastLen = -1;
