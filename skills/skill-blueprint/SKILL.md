@@ -76,7 +76,7 @@ python -I "${CLAUDE_PLUGIN_ROOT}/skills/skill-blueprint/scripts/scaffold.py" <�
   - 条件は原文に書いてあるものだけを書く。推測で条件を作らない。ラベルに根拠の行番号(例 `L201`)を入れる。
   - `from_item` / `to_item` は `"L<行番号>"`(`refs` の `line`)。その行より上で最も近い見出しに矢印がつながる。`to_item` は省略するとカード上部につながる。
   - 参照が `references/*.md` など別ファイルにある場合も、飛び先は SKILL.md 側の関連する見出し行にし、ラベルにファイル名と行を書く。
-- **全スキルを載せる**: `scan.json` に出た SKILL.md は1つも省略しない(ユーザーが絞るよう頼んだときだけ例外)。他から参照されない孤立スキルも載せ、START からの `optional` 矢印(ラベル例「該当すれば単独で起動」)でつなぐ。載せた数が `scan.json` のスキル数と一致するか、最後に確認する。
+- **全スキルを載せる**: `scan.json` に出た SKILL.md は1つも省略しない(ユーザーが絞るよう頼んだときだけ例外)。他から参照されない独立スキルも載せるが、**矢印は引かない**(原文に名指しの呼び出しがないのに START から線を引くと、呼び出し関係を偽る)。代わりに、そのスキルの `skills[].standalone` に**起動条件**を原文の根拠つきで書く(例: description の「Use when …」、README の使い方、hooks・コマンドからの起動の有無。ユーザー依頼で起動するのか、モデルが状況で判断して起動するのかも分ける)。`standalone` を書いたスキル、または矢印が1本もないスキルは、破線の枠で描かれ「独立スキル」の注記が付く。起動条件が原文から分からないときは推測だと明記する。載せた数が `scan.json` のスキル数と一致するか、最後に確認する。
 
 ### 3. スペックを書いて描画する
 
@@ -91,7 +91,8 @@ python -I "${CLAUDE_PLUGIN_ROOT}/skills/skill-blueprint/scripts/scaffold.py" <�
   "heading_levels": 2,
   "skills": [
     {"id": "using-superpowers", "summary": "一行説明"},
-    {"id": "brainstorming", "summary": "一行説明"}
+    {"id": "brainstorming", "summary": "一行説明"},
+    {"id": "receiving-code-review", "summary": "一行説明", "standalone": "独立スキルの起動条件(原文の根拠つき)"}
   ],
   "edges": [
     {"from": "using-superpowers", "from_item": "L30",

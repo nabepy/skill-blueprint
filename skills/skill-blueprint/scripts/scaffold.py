@@ -77,10 +77,8 @@ def mode_all(res, folder, outdir, force):
             if main:
                 e["from_item"] = f"L{r['line']}"
             edges.append(e)
-    linked = {entry} | {e["to"] for e in edges}
-    for n in skills:
-        if n not in linked:
-            edges.append({"from": entry, "to": n, "label": "該当すれば単独で起動", "kind": "optional"})
+    # 他から参照されず、参照もしない独立スキルには矢印を引かない(根拠のない矢印は作らない)。
+    # render.py が破線の枠で描くので、spec の skills[].standalone に起動条件を書く
     spec = {"title": f"{target_name(folder)} の設計図", "source": res["target"], "base": res["target"],
             "entry": entry, "heading_levels": 2,
             "skills": [{"id": n, "summary": first_sentence(s["description"]), "path": s["path"]} for n, s in skills.items()],

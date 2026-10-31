@@ -31,12 +31,12 @@ UI = {
     "ja": {"always": "必ず次に読む", "cond": "条件つきで読む", "back": "戻り・任意",
            "items": "項目 = SKILL.md の見出し(深さはインデント)", "hot": "● 青 = 矢印の出入り口",
            "fit": "全体", "reset": "配置リセット", "copy": "パスをコピー", "vscode": "VS Codeで開く",
-           "close": "閉じる", "copied": "コピーしました", "pdf": "PDF",
+           "close": "閉じる", "copied": "コピーしました", "pdf": "PDF", "alone": "◇ 独立スキル(他のスキルから呼ばれない)", "alone_leg": "破線の枠 = 他のスキルと結ばれない独立スキル",
            "pdf_tip": "印刷ダイアログで「PDFに保存」を選ぶと、図全体が1ページのPDFになります"},
     "en": {"always": "Always read next", "cond": "Read if condition holds", "back": "Return / optional",
            "items": "Items = SKILL.md headings (depth = indent)", "hot": "● blue = arrow endpoint",
            "fit": "Fit", "reset": "Reset layout", "copy": "Copy path", "vscode": "Open in VS Code",
-           "close": "Close", "copied": "Copied", "pdf": "PDF",
+           "close": "Close", "copied": "Copied", "pdf": "PDF", "alone": "◇ Standalone (not called by other skills)", "alone_leg": "Dashed frame = standalone skill, not linked to others",
            "pdf_tip": "Choose \"Save as PDF\" in the print dialog to get the whole diagram on one page"},
 }
 
@@ -106,6 +106,7 @@ def main(spec_path, out_path):
     skills = {s["id"]: s for s in spec["skills"]}
     entry = spec.get("entry") or spec["skills"][0]["id"]
     edges = [e for e in spec.get("edges", []) if e["from"] in skills and e["to"] in skills]
+    ui = UI.get(spec.get("ui_lang", "ja"), UI["ja"])  # 画面の文言(ja / en)。見出しや説明の言語とは別
 
     # --- 層の決定 (entry からのBFS) ---
     layer = {entry: 0}
@@ -166,7 +167,13 @@ def main(spec_path, out_path):
     inner_w = CARD_W - 2 * PAD
     for s in skills.values():
         s["_sum"] = wrap(s.get("summary", ""), inner_w, F_SUM, 2)
-        s["_head_h"] = 12 + 18 + len(s["_sum"]) * 14 + 8
+        # 独立スキル: 矢印が1本もない(START 以外)か、standalone を指定したスキル。起動条件の注記を添える
+        linked_ids = {e["from"] for e in edges} | {e["to"] for e in edges}
+        alone = s["id"] != entry and (bool(s.get("standalone")) or s["id"] not in linked_ids)
+        s["_alone"] = alone
+        note = s["standalone"] if isinstance(s.get("standalone"), str) else ""
+        s["_note"] = wrap(ui["alone"] + (": " + note if note else ""), inner_w, F_SUM, 4) if alone else []
+        s["_head_h"] = 12 + 18 + len(s["_sum"]) * 14 + len(s["_note"]) * 14 + 8
         y, rows = s["_head_h"], []
         for it in s["items"]:
             auto = it.get("_auto")
@@ -296,7 +303,7 @@ def main(spec_path, out_path):
     for sid, s in skills.items():
         x, y = pos[sid]
         is_entry = sid == entry
-        out.append(f'<g id="c-{esc(sid)}" class="card{" entry" if is_entry else ""}" transform="translate({x},{y})">')
+        out.append(f'<g id="c-{esc(sid)}" class="card{" entry" if is_entry else ""}{" alone" if s["_alone"] else ""}" transform="translate({x},{y})">')
         out.append(f'<rect class="box" width="{CARD_W}" height="{s["_h"]}" rx="10"/>')
         out.append(f'<rect class="head" width="{CARD_W}" height="{s["_head_h"]}" rx="10"/>'
                    f'<rect class="headfill" y="{s["_head_h"]-10}" width="{CARD_W}" height="10"/>')
@@ -306,6 +313,8 @@ def main(spec_path, out_path):
         out.append(nm)
         for k, ln in enumerate(s["_sum"]):
             out.append(f'<text class="sum" x="{PAD}" y="{12+18+14*(k+1)-2}">{esc(ln)}</text>')
+        for k, ln in enumerate(s["_note"]):
+            out.append(f'<text class="note" x="{PAD}" y="{12+18+14*(len(s["_sum"])+k+1)-2}">{esc(ln)}</text>')
         if is_entry:
             out.append(f'<g class="badge"><rect x="{CARD_W-70}" y="-12" width="62" height="22" rx="11"/>'
                        f'<text x="{CARD_W-39}" y="3" text-anchor="middle">START</text></g>')
@@ -340,9 +349,9 @@ def main(spec_path, out_path):
                             "title": spec.get("title", ""), "entry": entry,
                             "cards": {sid: [pos[sid][0], pos[sid][1], skills[sid]["_h"]] for sid in skills},
                             "edges": emodel}, ensure_ascii=False)
-    ui = UI.get(spec.get("ui_lang", "ja"), UI["ja"])  # 画面の文言(ja / en)。見出しや説明の言語とは別
     title = esc(spec.get("title", "スキル設計図"))
     src = esc(spec.get("source", ""))
+    alone_leg = f'<span>{ui["alone_leg"]}</span>' if any(s["_alone"] for s in skills.values()) else ""
     body = "\n".join(out)
     doc = f"""<!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -358,7 +367,7 @@ header{{padding:22px 40px 0}}h1{{margin:0;font-size:22px}}.src{{color:var(--sub)
 .wrap{{overflow:auto;height:calc(100vh - 130px);margin-top:8px;cursor:grab;border-top:1px solid var(--line)}}.wrap.drag{{cursor:grabbing;user-select:none}}svg{{display:block;height:auto;user-select:none;-webkit-user-select:none}}
 .zoom{{position:fixed;right:16px;top:14px;display:flex;gap:4px;align-items:center;z-index:5;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:4px}}
 .zoom button{{border:0;background:transparent;color:var(--ink);font-size:15px;min-width:32px;height:30px;border-radius:6px;cursor:pointer}}.zoom button:hover{{background:var(--head)}}.zoom span{{font-size:12px;color:var(--sub);min-width:44px;text-align:center}}
-.box{{fill:var(--card);stroke:var(--line);stroke-width:1.2}}.entry .box{{stroke:var(--entry);stroke-width:2.2}}
+.box{{fill:var(--card);stroke:var(--line);stroke-width:1.2}}.entry .box{{stroke:var(--entry);stroke-width:2.2}}.alone .box{{stroke-dasharray:7 4;stroke:var(--sub)}}.note{{font-size:11px;fill:var(--cond)}}
 .head,.headfill{{fill:var(--head)}}.entry .head,.entry .headfill{{fill:var(--entryhead)}}
 .name{{font-size:14px;font-weight:700;fill:var(--ink)}}.sum{{font-size:11px;fill:var(--sub)}}
 .item{{font-size:12px;fill:var(--ink)}}.ref{{font-size:10px;fill:var(--sub)}}
@@ -379,7 +388,7 @@ header{{padding:22px 40px 0}}h1{{margin:0;font-size:22px}}.src{{color:var(--sub)
 @media print{{html,body{{-webkit-print-color-adjust:exact;print-color-adjust:exact}}header{{padding-top:12px}}.zoom,.lvbar,#pane,#sv{{display:none!important}}.wrap{{height:auto;overflow:visible}}svg{{width:100%!important}}}}
 </style></head><body>
 <header><h1>{title}</h1><div class="src">{src}</div>
-<div class="legend"><span><i></i>{ui["always"]}</span><span><i class="c"></i>{ui["cond"]}</span><span><i class="b"></i>{ui["back"]}</span><span>{ui["items"]}</span><span style="color:var(--accent)">{ui["hot"]}</span></div></header>
+<div class="legend"><span><i></i>{ui["always"]}</span><span><i class="c"></i>{ui["cond"]}</span><span><i class="b"></i>{ui["back"]}</span><span>{ui["items"]}</span>{alone_leg}<span style="color:var(--accent)">{ui["hot"]}</span></div></header>
 <div class="wrap"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {int(width)} {int(height)}">
 <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
 {body}
