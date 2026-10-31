@@ -1,0 +1,23 @@
+{
+  "name": "skill-blueprint",
+  "owner": {
+    "name": "nabepy",
+    "url": "https://github.com/nabepy"
+  },
+  "metadata": {
+    "description": "スキル群の設計図(関係図)を作るプラグイン"
+  },
+  "plugins": [
+    {
+      "name": "skill-blueprint",
+      "source": "./",
+      "description": "スキル群を1枚の設計図(HTML)にする。実行ログの重ね表示と統計つき。",
+      "version": "0.1.0",
+      "author": { "name": "nabepy" },
+      "repository": "https://github.com/nabepy/skill-blueprint",
+      "license": "MIT",
+      "category": "development",
+      "tags": ["skills", "diagram", "visualization"]
+    }
+  ]
+}

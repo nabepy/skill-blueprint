@@ -1,0 +1,38 @@
+.lvbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:12px}
+.lvbar button,.lvbar select,.lvbar label.btn{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:4px 9px;cursor:pointer}
+.lvbar button.on{background:var(--head);border-color:var(--accent);color:var(--accent)}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--sub);background:var(--card)}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--sub);display:inline-block}
+.chip.live{color:var(--entry);border-color:var(--entry)}.chip.live i{background:var(--entry);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+.lvbar input[type=file]{display:none}
+/* 設計図への重ね表示 */
+.card.idle .box,.card.idle .head,.card.idle .headfill{opacity:.55}
+.card.visited .box{stroke:var(--accent);stroke-width:2}
+.card.cur .box{stroke:var(--entry);stroke-width:3.5;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{stroke-opacity:.3}}
+.cnt rect{fill:var(--accent)}.cnt text{fill:#fff;font-size:11px;font-weight:700}
+.edge.dim,.elabel.dim{opacity:.22}
+.edge.hit{stroke-width:3.5}.edge.recent{stroke-dasharray:10 6;animation:flow .8s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-16}}
+.rowbg{fill:transparent;pointer-events:none}
+.rowbg.est{fill:var(--entry)}
+/* 統計ビュー */
+#sv{position:fixed;inset:0;background:var(--bg);overflow:auto;z-index:20;display:none;padding:20px 28px 60px}
+#sv.on{display:block}
+#sv h1{font-size:20px;margin:0 0 4px}#sv h2{font-size:15px;margin:26px 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px}
+#sv .note{color:var(--sub);font-size:12px;margin:2px 0 10px}
+#sv .tiles{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+#sv .tile{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:10px 16px;min-width:130px}
+#sv .tile b{font-size:24px;display:block}#sv .tile span{font-size:12px;color:var(--sub)}
+#sv table{border-collapse:collapse;width:100%;font-size:13px}
+#sv td,#sv th{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:middle}
+#sv th{color:var(--sub);font-weight:600;font-size:12px}
+#sv .bar{height:10px;border-radius:5px;background:var(--accent);min-width:2px;display:inline-block;vertical-align:middle}
+#sv .bar.est{background:var(--entry)}#sv .bar.bad{background:#d64545}
+#sv .zero{color:var(--sub)}
+#sv .path span{display:inline-block;border:1px solid var(--line);border-radius:5px;padding:1px 6px;margin:1px 0;background:var(--card)}
+#sv details{margin:6px 0}#sv summary{cursor:pointer;font-weight:600}
+#sv .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+#sv button{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:4px 9px;cursor:pointer}
+#sv a.pick{cursor:pointer;color:var(--accent);text-decoration:underline}

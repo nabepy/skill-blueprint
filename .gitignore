@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+# 実行ログと解析結果は利用者ごとのデータ
+blueprints/*/logs/
+blueprints/*/stats.json
