@@ -130,7 +130,7 @@ python -I "${CLAUDE_PLUGIN_ROOT}/skills/skill-blueprint/scripts/render.py" bluep
 
 | 見たいもの | 方法 | 精度 |
 |---|---|---|
-| リアルタイム(今どのスキルか、通った矢印、回数) | `python -I "${CLAUDE_PLUGIN_ROOT}/skills/skill-blueprint/scripts/serve.py" blueprints/<フォルダ名>` で配信し `http://localhost:8765/index.html` を開く。1秒ごとに更新、カードが脈打つ | 正確(hooksの記録) |
+| リアルタイム(今どのスキルか、通った矢印、回数) | `python -I "${CLAUDE_PLUGIN_ROOT}/skills/skill-blueprint/scripts/serve.py" blueprints/<フォルダ名>` で配信し、表示された URL(ポートは設計図フォルダごとに決まり、別プロジェクトの設計図と混ざらない)を開く。画面の見出しとパスで、どのプロジェクトの設計図かを確かめる。1秒ごとに更新、カードが脈打つ | 正確(hooksの記録) |
 | 終了後の項目(見出し)単位 | ターン終了ごとに `analyze.py` が自動実行され、会話ログの文面と見出しを照合して `stats.json` に書く。設計図の見出しが緑に色づく | **推定**(見出し名の登場・読み込んだ行範囲・語句の近さ) |
 | 統計 | 設計図上部の「統計」ボタン(`#stats` を付けて直接開くことも可)。スキル別回数・矢印別通過回数と割合・設計図にない遷移・項目別の通過率・セッション一覧 | 回数は正確、項目は推定 |
 
