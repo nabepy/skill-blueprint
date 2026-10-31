@@ -58,14 +58,17 @@ def skill_headings(spec):
         lo, hi = s.get("range", [1, 10**9])
         ent = res.setdefault(sk, {"path": s["path"], "total": len(lines), "sections": {}})
         for idx, (ln, lv, title) in enumerate(hs):
-            if not (lo <= ln <= hi) or lv > maxlv or (lv == 1 and maxlv > 1):
+            # 設計図に出す見出し(shown)より深い見出しも内部では判定に使い、通過したら親の見出しへ伝える
+            if not (lo <= ln <= hi) or lv > max(maxlv, 4) or (lv == 1 and maxlv > 1):
                 continue
             end = len(lines)
             for ln2, lv2, _ in hs[idx + 1:]:
                 if lv2 <= lv:
                     end = ln2 - 1
                     break
-            ent["sections"][ln] = {"line": ln, "end": end, "title": title, "text": "\n".join(lines[ln:end])}
+            prev = ent["sections"].get(ln)
+            ent["sections"][ln] = {"line": ln, "end": end, "title": title, "text": "\n".join(lines[ln:end]),
+                                   "shown": lv <= maxlv or bool(prev and prev["shown"])}
     return res
 
 
@@ -128,8 +131,12 @@ def infer_items(sections, seg_text, reads):
     for ln, s in sections.items():
         best, why = 0.0, ""
         title = s["title"].strip()
-        for cand in {title.lower(), title.split(":")[-1].strip().lower(), title.split("(")[0].strip().lower()}:
-            if len(cand) >= 4 and cand not in GENERIC and cand in seg_low:
+        cands = {title.lower(), title.split(":")[-1].strip().lower(), re.split(r"[:：(（]", title)[0].strip().lower()}
+        for q in re.findall(r"[「『]([^」』]+)[」』]", title):  # 「変わるもの/変わらないもの」→ それぞれ
+            cands.update(x.strip().lower() for x in q.split("/"))
+        for cand in cands:
+            need = 3 if re.search(r"[぀-ヿ一-鿿]", cand) else 4
+            if len(cand) >= need and cand not in GENERIC and cand in seg_low:
                 best, why = 1.0, "見出しの文言が出力に登場"
                 break
         if not why:
@@ -145,7 +152,14 @@ def infer_items(sections, seg_text, reads):
                 best, why = 0.7, "その行範囲を読み込み"
         if best >= THRESH:
             out[ln] = {"score": round(best, 2), "why": why}
-    return out
+    # 配下の見出しが通過していれば、親(設計図に出している見出し)も通過とする
+    for ln, s in sections.items():
+        if s["shown"] and ln not in out:
+            kids = [k for k in out if ln < k <= s["end"]]
+            if kids:
+                k = max(kids, key=lambda x: out[x]["score"])
+                out[ln] = {"score": out[k]["score"], "why": f"配下の見出し「{sections[k]['title'][:20]}」を通過"}
+    return {ln: v for ln, v in out.items() if sections[ln]["shown"]}
 
 
 def build_sessions(spec, evs):
