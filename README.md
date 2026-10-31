@@ -29,7 +29,7 @@
 ## 使い方
 
 ```
-/skill-blueprint superpowers-main
+/skill-blueprint @project
 ```
 
 結果はプロジェクト直下の `blueprints/<フォルダ名>/` に出力されます。
