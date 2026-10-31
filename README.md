@@ -41,13 +41,14 @@ blueprints/<フォルダ名>/
   stats.json         解析結果
 ```
 
-リアルタイム表示は、設計図フォルダを配信して開きます。
+設計図を作ると、ローカルサーバー(`127.0.0.1` のみ)が自動で裏に立ち上がり、表示された URL(`http://localhost:<ポート>/index.html`)で開きます。
+ポートは設計図フォルダごとに決まります(別プロジェクトの設計図と取り違えません)。実行ログは1秒ごとに読み直されます。
+手動で操作する場合:
 
 ```
-python -I "<プラグインのパス>/skills/skill-blueprint/scripts/serve.py" blueprints/<フォルダ名>
-```
-
-→ `http://localhost:8765/index.html`(`127.0.0.1` のみで待ち受けます)
+python -I "<プラグインのパス>/skills/skill-blueprint/scripts/serve.py" blueprints/<フォルダ名> --detach   # 起動(動いていれば再利用)
+python -I "<プラグインのパス>/skills/skill-blueprint/scripts/serve.py" blueprints/<フォルダ名> --stop     # 停止
+python -I "<プラグインのパス>/skills/skill-blueprint/scripts/serve.py" blueprints/<フォルダ名> --status   # 状態
 
 ## 実行ログについて
 
