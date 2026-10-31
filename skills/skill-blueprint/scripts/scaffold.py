@@ -129,6 +129,10 @@ def main():
     ap.add_argument("--force", action="store_true")
     a = ap.parse_args()
     res = S.scan(a.folder, a.skills_dir)
+    # このスキル自身は、他にスキルがあれば図から外す(@project / @user で自分が混ざるのを防ぐ。個別なら --skill で指定可)
+    if a.mode == "all" and len(res["skills"]) > 1:
+        res["skills"] = [s for s in res["skills"] if s["name"] != "skill-blueprint"]
+        res["entry_candidates"] = [n for n in res["entry_candidates"] if n != "skill-blueprint"]
     if a.mode == "all":
         mode_all(res, a.folder, a.out, a.force)
     else:
