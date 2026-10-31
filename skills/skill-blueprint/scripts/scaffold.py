@@ -17,7 +17,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import scan as S
 
 COND = re.compile(r"\b(if|when|unless|only|otherwise|in case|depending)\b|場合|とき|なら|以外|必要に応じ|ない時|する時", re.I)
-REF_MAX_SKILLS = 5  # 全体モードで references/*.md もカードにするのは、スキルがこの数以下のとき(多いと図が膨らむので「個別」へ)
 START = re.compile(r"(start|begin|any conversation|before any|最初|開始|会話の)", re.I)
 
 
@@ -81,21 +80,24 @@ def mode_all(res, folder, outdir, force):
     # 他から参照されず、参照もしない独立スキルには矢印を引かない(根拠のない矢印は作らない)。
     # render.py が破線の枠で描くので、spec の skills[].standalone に起動条件を書く
     ref_cards = []
-    if len(skills) <= REF_MAX_SKILLS:  # スキルが少ない図では、SKILL.md が読む references/*.md も1枚のカードにする
-        for n, s in skills.items():
-            lines = open(s["path"], encoding="utf-8", errors="replace").read().splitlines()
-            for f in s["files"]:
-                if not f.endswith(".md"):
-                    continue
-                pat = re.compile(r"(?<![\w/.-])" + re.escape(f) + r"|(?<![\w/.-])" + re.escape(os.path.basename(f)) + r"(?![\w.-])")
-                hit = next(((i, ln) for i, ln in enumerate(lines, 1) if pat.search(ln)), None)
-                if not hit:
-                    continue  # SKILL.md が名指ししていないファイルは載せない(根拠のない矢印を作らない)
-                i, ln = hit
-                cid = f"{n}--ref-{sid(f)}"
-                ref_cards.append({"id": cid, "name": f"{n}/{f}", "summary": "", "path": os.path.join(s["dir"], f), "heading_levels": 2})
-                edges.append({"from": n, "from_item": f"L{i}", "to": cid, "label": f"{short(ln)} (L{i})",
-                              "kind": "conditional" if COND.search(ln) else "always"})
+    # スキル配下の .md は、フォルダ名(references など)に関係なくすべてカードにする。
+    # 矢印は、SKILL.md や別の .md が実際に名指ししている行から引く(条件語があれば conditional)。
+    # どこからも名指しされていない .md も「関連ファイル」として載せる(矢印なし。render.py が破線の枠で描く)
+    for n, s in skills.items():
+        cid_of = {"SKILL.md": n}
+        for f in s["files"]:
+            if f.endswith(".md"):
+                cid_of[f] = f"{n}--ref-{sid(f)}"
+                ref_cards.append({"id": cid_of[f], "name": f"{n}/{f}", "summary": "", "file": True,
+                                  "path": os.path.join(s["dir"], f), "heading_levels": 2})
+        seen_pair = set()
+        for r in sorted(s.get("file_refs", []), key=lambda r: (r["from"] != "SKILL.md", r["from"], r["line"])):
+            if (r["from"], r["to"]) in seen_pair:
+                continue
+            seen_pair.add((r["from"], r["to"]))
+            edges.append({"from": cid_of[r["from"]], "from_item": f"L{r['line']}", "to": cid_of[r["to"]],
+                          "label": f"{short(r['text'])} (L{r['line']})",
+                          "kind": "conditional" if COND.search(r["text"]) else "always"})
     spec = {"title": f"{target_name(folder)} の設計図", "source": res["target"], "base": res["target"],
             "entry": entry, "heading_levels": 2,
             "skills": [{"id": n, "summary": first_sentence(s["description"]), "path": s["path"]} for n, s in skills.items()] + ref_cards,

@@ -31,12 +31,12 @@ UI = {
     "ja": {"always": "必ず次に読む", "cond": "条件つきで読む", "back": "戻り・任意",
            "items": "項目 = SKILL.md の見出し(深さはインデント)", "hot": "● 青 = 矢印の出入り口",
            "fit": "全体", "reset": "配置リセット", "copy": "パスをコピー", "vscode": "VS Codeで開く",
-           "close": "閉じる", "copied": "コピーしました", "pdf": "PDF", "src_orig": "原文", "src_ja": "日本語", "src_en": "English", "tr_note": "翻訳(AI訳・行は原文と対応)", "alone": "◇ 独立スキル(他のスキルから呼ばれない)", "alone_leg": "破線の枠 = 他のスキルと結ばれない独立スキル",
+           "close": "閉じる", "copied": "コピーしました", "pdf": "PDF", "src_orig": "原文", "src_ja": "日本語", "src_en": "English", "tr_note": "翻訳(AI訳・行は原文と対応)", "alone": "◇ 独立スキル(他のスキルから呼ばれない)", "alone_file": "◇ 関連ファイル(どの .md からも名指しされていない)", "alone_leg": "破線の枠 = 他のスキルと結ばれない独立スキル",
            "pdf_tip": "印刷ダイアログで「PDFに保存」を選ぶと、図全体が1ページのPDFになります"},
     "en": {"always": "Always read next", "cond": "Read if condition holds", "back": "Return / optional",
            "items": "Items = SKILL.md headings (depth = indent)", "hot": "● blue = arrow endpoint",
            "fit": "Fit", "reset": "Reset layout", "copy": "Copy path", "vscode": "Open in VS Code",
-           "close": "Close", "copied": "Copied", "pdf": "PDF", "src_orig": "Original", "src_ja": "日本語", "src_en": "English", "tr_note": "Translation (AI, lines match the original)", "alone": "◇ Standalone (not called by other skills)", "alone_leg": "Dashed frame = standalone skill, not linked to others",
+           "close": "Close", "copied": "Copied", "pdf": "PDF", "src_orig": "Original", "src_ja": "日本語", "src_en": "English", "tr_note": "Translation (AI, lines match the original)", "alone": "◇ Standalone (not called by other skills)", "alone_file": "◇ Related file (not named by any .md)", "alone_leg": "Dashed frame = standalone skill, not linked to others",
            "pdf_tip": "Choose \"Save as PDF\" in the print dialog to get the whole diagram on one page"},
 }
 
@@ -172,7 +172,7 @@ def main(spec_path, out_path):
         alone = s["id"] != entry and (bool(s.get("standalone")) or s["id"] not in linked_ids)
         s["_alone"] = alone
         note = s["standalone"] if isinstance(s.get("standalone"), str) else ""
-        s["_note"] = wrap(ui["alone"] + (": " + note if note else ""), inner_w, F_SUM, 4) if alone else []
+        s["_note"] = wrap(ui["alone_file" if s.get("file") else "alone"] + (": " + note if note else ""), inner_w, F_SUM, 4) if alone else []
         s["_head_h"] = 12 + 18 + len(s["_sum"]) * 14 + len(s["_note"]) * 14 + 8
         y, rows = s["_head_h"], []
         for it in s["items"]:

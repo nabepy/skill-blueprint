@@ -120,6 +120,20 @@ def scan(folder, skills_dir_arg=None):
                         sec = next((h["title"] for h in reversed(hs) if h["line"] <= i), "")
                         s["refs"].append({"to": n, "file": fname, "line": i,
                                           "section": sec, "text": line.strip()[:220]})
+    # スキル配下の .md どうしの参照(SKILL.md → 付属 md、md → 別の md)。相対パスまたはファイル名で言及されたもの
+    for s in skills.values():
+        mds = ["SKILL.md"] + [f for f in s["files"] if f.endswith(".md")]
+        s["file_refs"] = []
+        for src in mds:
+            lines = open(os.path.join(s["dir"], src), encoding="utf-8", errors="replace").read().splitlines()
+            for dst in mds:
+                if dst == src or dst == "SKILL.md":
+                    continue
+                pat = re.compile(r"(?<![\w/.-])" + re.escape(dst) + r"|(?<![\w/.-])" + re.escape(os.path.basename(dst)) + r"(?![\w.-])")
+                for i, ln in enumerate(lines, 1):
+                    if pat.search(ln):
+                        s["file_refs"].append({"from": src, "to": dst, "line": i, "text": ln.strip()[:220]})
+                        break
     incoming = {n: 0 for n in names}
     for s in skills.values():
         for t in {r["to"] for r in s["refs"]}:
