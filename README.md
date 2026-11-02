@@ -1,66 +1,69 @@
+English | [日本語](README.ja.md)
+
 # skill-blueprint
 
-`skills/` フォルダ内のスキル群を、**1枚の設計図(HTML)** にする Claude Code プラグインです。
+A Claude Code plugin that turns the skills in a `skills/` folder into **a single-page blueprint (HTML)**.
 
-- 最初に読むスキル(START)
-- 各スキルの見出し(SKILL.md の見出しそのまま)
-- 条件によって別のスキルへ進む流れを、条件ラベルつきの矢印で結ぶ
+- The skill to read first (START)
+- The headings of each skill (taken verbatim from SKILL.md)
+- Arrows with condition labels showing when the flow moves on to another skill
 
-## できること
+## Features
 
-- **設計図の生成**: `/skill-blueprint <対象> [言語] [全体|個別]`
-  - 対象: `skills/` 内のフォルダ名、パス、`@project`(`.claude/skills`)、`@user`(`~/.claude/skills`)
-  - 範囲: **全体**(省略時)は対象の全スキルを1枚に。**個別**はスキル1つにつき1枚(SKILL.md と references の関係)
-  - 言語: 省略すると原文のまま、指定すると見出しや説明をその言語に訳します(`/skill-blueprint @project 日本語 個別`)。
-- **操作**: マウスホイールで拡大縮小、カードや矢印のラベルをドラッグして移動、項目をクリックすると SKILL.md の該当行を右パネルで表示します。
-- **PDF 書き出し**: 設計図の右上の「PDF」ボタンから、印刷ダイアログで「PDFに保存」を選ぶと、図全体が1ページのPDFになります。コマンドなら `python -I "<プラグインのパス>/skills/skill-blueprint/scripts/export_pdf.py" blueprints/<フォルダ名>`(ヘッドレスの Edge / Chrome を使用。出力は `blueprints/<フォルダ名>/blueprint.pdf`)。
-- **実行ログの重ね表示(リアルタイム)**: AI がスキルを使うと、今のスキルが脈打ち、通った矢印が太くなります。
-- **事後の項目推定と統計**: 終了後に会話ログから通った見出しを推定して色づけします。「統計」ビューで、スキル・矢印・項目ごとの通過回数を見られます。
+- **Generate a blueprint**: `/skill-blueprint <target> [language] [all|each]`
+  - Target: a folder name inside `skills/`, a path, `@project` (`.claude/skills`), or `@user` (`~/.claude/skills`)
+  - Scope: **all** (default) puts every skill of the target on one page. **each** makes one page per skill (the relation between SKILL.md and its references)
+  - Language: left out, the original text is kept; when given, headings and descriptions are translated into that language (`/skill-blueprint @project Japanese each`).
+- **Interaction**: zoom with the mouse wheel, drag cards and arrow labels to move them, and click an item to show the matching lines of SKILL.md in the right panel.
+- **PDF export**: use the "PDF" button at the top right of the blueprint and choose "Save as PDF" in the print dialog to get the whole diagram on one page. From the command line: `python -I "<plugin path>/skills/skill-blueprint/scripts/export_pdf.py" blueprints/<folder>` (uses headless Edge / Chrome; output goes to `blueprints/<folder>/blueprint.pdf`).
+- **Live run-log overlay**: while the AI uses skills, the current skill pulses and the arrows it has taken get thicker.
+- **After-the-fact item estimation and statistics**: once a session ends, the headings that were passed are estimated from the conversation log and colored. The "Stats" view shows pass counts per skill, arrow, and item.
 
-## インストール
+## Installation
 
 ```
 /plugin marketplace add nabepy/skill-blueprint
 /plugin install skill-blueprint@skill-blueprint
 ```
 
-必要なもの: **Python 3.8 以上**(`python` コマンド。標準ライブラリのみで、追加インストールは不要)。
+Requirements: **Python 3.8 or later** (the `python` command; standard library only, nothing else to install).
 
-## 使い方
+## Usage
 
 ```
 /skill-blueprint @project
 ```
 
-結果はプロジェクト直下の `blueprints/<フォルダ名>/` に出力されます(`@project` のときのフォルダ名は `project-skills`)。
+The result is written to `blueprints/<folder>/` in the project root (for `@project` the folder name is `project-skills`).
 
 ```
-blueprints/<フォルダ名>/
-  spec.json          設計(手直し用)
-  index.html         設計図
-  logs/events.jsonl  実行ログ(スキル名・時刻・セッションIDのみ。会話の本文は保存しません)
-  stats.json         解析結果
+blueprints/<folder>/
+  spec.json          the design (for hand edits)
+  index.html         the blueprint
+  logs/events.jsonl  run log (skill name, time, and session ID only; no conversation text is stored)
+  stats.json         analysis result
 ```
 
-設計図を作ると、ローカルサーバー(`127.0.0.1` のみ)が自動で裏に立ち上がり、表示された URL(`http://localhost:<ポート>/index.html`)で開きます。
-ポートは設計図フォルダごとに決まります(別プロジェクトの設計図と取り違えません)。実行ログは1秒ごとに読み直されます。
-手動で操作する場合:
+When a blueprint is created, a local server (`127.0.0.1` only) starts in the background and the blueprint opens at the displayed URL (`http://localhost:<port>/index.html`).
+The port is fixed per blueprint folder, so blueprints of different projects are never mixed up. The run log is re-read every second.
+To control the server manually:
 
 ```
-python -I "<プラグインのパス>/skills/skill-blueprint/scripts/serve.py" blueprints/<フォルダ名> --detach   # 起動(動いていれば再利用)
-python -I "<プラグインのパス>/skills/skill-blueprint/scripts/serve.py" blueprints/<フォルダ名> --stop     # 停止
-python -I "<プラグインのパス>/skills/skill-blueprint/scripts/serve.py" blueprints/<フォルダ名> --status   # 状態
+python -I "<plugin path>/skills/skill-blueprint/scripts/serve.py" blueprints/<folder> --detach   # start (reuses a running one)
+python -I "<plugin path>/skills/skill-blueprint/scripts/serve.py" blueprints/<folder> --stop     # stop
+python -I "<plugin path>/skills/skill-blueprint/scripts/serve.py" blueprints/<folder> --status   # status
+```
 
-## 実行ログについて
+## About the run log
 
-プラグインを有効にすると、同梱の hooks が動きます。`blueprints/*/spec.json` に載っているスキルの利用だけを
-`logs/events.jsonl` に追記し、それ以外のセッションでは何も書きません。
+When the plugin is enabled, its bundled hooks run. They append to `logs/events.jsonl` only when a skill listed in
+`blueprints/*/spec.json` is used, and write nothing in any other session.
 
-- スキル名・時刻・セッションID・読み込んだ行範囲だけを保存します。プロンプトや回答の本文は保存しません。
-- 項目(見出し)の通過は、会話ログ(Claude Code が保存するファイル)を読んでの**推定**です。スキルと矢印の回数は記録に基づく正確な値です。
-- 記録をやめるには、プラグインを無効にしてください。
-- リポジトリに設計図を入れる場合は、`blueprints/*/logs/` を `.gitignore` に入れることをおすすめします。
+- Only the skill name, time, session ID, and the line range read are saved. Prompts and replies are not saved.
+- Passing through an item (heading) is an **estimate** made by reading the conversation log (the file Claude Code saves). The counts for skills and arrows are exact values based on the recorded log.
+- To stop recording, disable the plugin.
+- If you commit blueprints to a repository, we recommend adding `blueprints/*/logs/` to `.gitignore`.
 
-## ライセンス
+## License
 
 MIT
