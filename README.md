@@ -8,6 +8,8 @@ A Claude Code plugin that turns the skills in a `skills/` folder into **a single
 - The headings of each skill (taken verbatim from SKILL.md)
 - Arrows with condition labels showing when the flow moves on to another skill
 
+![Blueprint example](docs/screenshot.png)
+
 ## Features
 
 - **Generate a blueprint**: `/skill-blueprint <target> [language] [all|each]`
